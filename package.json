@@ -2,7 +2,7 @@
   "name": "frontend-task-akij",
   "private": true,
   "scripts": {
-    "install:all": "npm ci --prefix frontend && npm ci --prefix server",
+    "install:all": "npm ci --include=dev --prefix frontend && npm ci --include=dev --prefix server",
     "build": "npm run prisma:generate --prefix server && npm run build --prefix frontend",
     "vercel-build": "npm run install:all && npm run build"
   }

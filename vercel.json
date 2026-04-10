@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm ci --prefix frontend && npm ci --prefix server",
+  "installCommand": "npm ci --include=dev --prefix frontend && npm ci --include=dev --prefix server",
   "builds": [
     {
       "src": "frontend/package.json",
