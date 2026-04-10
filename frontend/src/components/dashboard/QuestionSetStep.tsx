@@ -2,10 +2,24 @@
 
 import { Check } from "lucide-react";
 import { useState } from "react";
-import { useAddQuestionMutation } from "@/hooks/api/useEmployer";
+import {
+  useAddQuestionMutation,
+  useDeleteQuestionMutation,
+  useUpdateQuestionMutation,
+} from "@/hooks/api/useEmployer";
 import type { EmployerExamQuestion, QuestionPayload, QuestionType } from "@/lib/api/types";
 import { getApiErrorMessage } from "@/lib/api/client";
 import AddQuestionModal from "@/components/dashboard/AddQuestionModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -21,11 +35,62 @@ export default function QuestionSetStep({
   defaultQuestionType = "RADIO",
 }: QuestionSetStepProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const addQuestionMutation = useAddQuestionMutation();
+  const [editingQuestion, setEditingQuestion] = useState<EmployerExamQuestion | null>(null);
+  const [confirmingDeleteQuestionId, setConfirmingDeleteQuestionId] = useState<string | null>(
+    null,
+  );
+  const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
 
-  const handleAddQuestion = async (payload: QuestionPayload) => {
+  const addQuestionMutation = useAddQuestionMutation();
+  const updateQuestionMutation = useUpdateQuestionMutation();
+  const deleteQuestionMutation = useDeleteQuestionMutation();
+
+  const handleSubmitQuestion = async (payload: QuestionPayload) => {
+    if (editingQuestion) {
+      await updateQuestionMutation.mutateAsync({
+        examId,
+        questionId: editingQuestion.id,
+        payload,
+      });
+      return;
+    }
+
     await addQuestionMutation.mutateAsync({ examId, payload });
   };
+
+  const handleOpenAddQuestion = () => {
+    setEditingQuestion(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditQuestion = (question: EmployerExamQuestion) => {
+    setEditingQuestion(question);
+    setIsModalOpen(true);
+  };
+
+  const handleRemoveQuestion = async (questionId: string) => {
+    setDeletingQuestionId(questionId);
+
+    try {
+      await deleteQuestionMutation.mutateAsync({ examId, questionId });
+      setConfirmingDeleteQuestionId(null);
+    } finally {
+      setDeletingQuestionId(null);
+    }
+  };
+
+  const handleModalOpenChange = (nextOpen: boolean) => {
+    setIsModalOpen(nextOpen);
+
+    if (!nextOpen) {
+      setEditingQuestion(null);
+    }
+  };
+
+  const isSubmittingQuestion = addQuestionMutation.isPending || updateQuestionMutation.isPending;
+  const activeError =
+    addQuestionMutation.error ?? updateQuestionMutation.error ?? deleteQuestionMutation.error;
+  const modalRenderKey = `${isModalOpen ? "open" : "closed"}-${editingQuestion?.id ?? "new"}`;
 
   return (
     <div className="mx-auto w-full max-w-238.5 space-y-4">
@@ -36,7 +101,7 @@ export default function QuestionSetStep({
               className="h-11 rounded-xl bg-[#6633ff] px-8 text-white hover:bg-[#5b2ef0] w-full"
               disabled={!examId}
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleOpenAddQuestion}
             >
               Add Question
             </Button>
@@ -95,11 +160,23 @@ export default function QuestionSetStep({
               )}
 
               <div className="flex items-center justify-between border-t border-[#e5e7eb] pt-3 text-sm">
-                <button className="text-[#6633ff]" type="button">
+                <button
+                  className="text-[#6633ff] disabled:text-[#94a3b8] cursor-pointer"
+                  disabled={isSubmittingQuestion || deleteQuestionMutation.isPending}
+                  type="button"
+                  onClick={() => handleOpenEditQuestion(question)}
+                >
                   Edit
                 </button>
-                <button className="text-[#ef4444]" type="button">
-                  Remove From Exam
+                <button
+                  className="text-[#ef4444] disabled:text-[#fca5a5] cursor-pointer"
+                  disabled={deleteQuestionMutation.isPending}
+                  type="button"
+                  onClick={() => setConfirmingDeleteQuestionId(question.id)}
+                >
+                  {deleteQuestionMutation.isPending && deletingQuestionId === question.id
+                    ? "Removing..."
+                    : "Remove From Exam"}
                 </button>
               </div>
             </CardContent>
@@ -114,7 +191,7 @@ export default function QuestionSetStep({
               className="h-11 w-full rounded-xl bg-[#6633ff] text-white hover:bg-[#5b2ef0]"
               disabled={!examId}
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleOpenAddQuestion}
             >
               Add Question
             </Button>
@@ -122,19 +199,53 @@ export default function QuestionSetStep({
         </Card>
       ) : null}
 
-      {addQuestionMutation.isError ? (
-        <p className="text-center text-sm text-red-600">
-          {getApiErrorMessage(addQuestionMutation.error)}
-        </p>
-      ) : null}
+      {activeError ? <p className="text-center text-sm text-red-600">{getApiErrorMessage(activeError)}</p> : null}
 
       <AddQuestionModal
+        key={modalRenderKey}
         defaultQuestionType={defaultQuestionType}
-        isSubmitting={addQuestionMutation.isPending}
+        initialQuestion={editingQuestion}
+        isSubmitting={isSubmittingQuestion}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onSubmitQuestion={handleAddQuestion}
+        onOpenChange={handleModalOpenChange}
+        onSubmitQuestion={handleSubmitQuestion}
       />
+
+      <AlertDialog
+        open={Boolean(confirmingDeleteQuestionId)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setConfirmingDeleteQuestionId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this question?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The question will be removed from this exam.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteQuestionMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-[#ef4444] text-white hover:bg-[#dc2626]"
+              disabled={deleteQuestionMutation.isPending || !confirmingDeleteQuestionId}
+              onClick={(event) => {
+                event.preventDefault();
+
+                if (!confirmingDeleteQuestionId) {
+                  return;
+                }
+
+                void handleRemoveQuestion(confirmingDeleteQuestionId);
+              }}
+            >
+              {deleteQuestionMutation.isPending ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

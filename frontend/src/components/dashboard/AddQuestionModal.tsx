@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import type { QuestionPayload, QuestionType } from "@/lib/api/types";
+import type { EmployerExamQuestion, QuestionPayload, QuestionType } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -28,6 +28,7 @@ type AddQuestionModalProps = {
   onSubmitQuestion: (payload: QuestionPayload) => Promise<void>;
   isSubmitting?: boolean;
   defaultQuestionType?: QuestionType;
+  initialQuestion?: EmployerExamQuestion | null;
 };
 
 function htmlToText(html: string) {
@@ -46,30 +47,50 @@ function getInitialOptions(): OptionDraft[] {
   }));
 }
 
+function toOptionDrafts(question?: EmployerExamQuestion | null): OptionDraft[] {
+  if (!question || question.type === "TEXT") {
+    return getInitialOptions();
+  }
+
+  if (question.options.length === 0) {
+    return getInitialOptions();
+  }
+
+  return question.options.map((option, index) => ({
+    id: option.id || `opt-${index}-${Date.now()}`,
+    label: option.label,
+    isCorrect: option.isCorrect,
+  }));
+}
+
 export default function AddQuestionModal({
   open,
   onOpenChange,
   onSubmitQuestion,
   isSubmitting = false,
   defaultQuestionType = "RADIO",
+  initialQuestion = null,
 }: AddQuestionModalProps) {
-  const [questionBody, setQuestionBody] = useState("");
-  const [questionType, setQuestionType] = useState<QuestionType>(defaultQuestionType);
+  const [questionBody, setQuestionBody] = useState(initialQuestion?.title ?? "");
+  const [questionType, setQuestionType] = useState<QuestionType>(
+    initialQuestion?.type ?? defaultQuestionType,
+  );
   const [score, setScore] = useState("1");
-  const [options, setOptions] = useState<OptionDraft[]>(getInitialOptions());
+  const [options, setOptions] = useState<OptionDraft[]>(toOptionDrafts(initialQuestion));
   const [formError, setFormError] = useState("");
+  const isEditMode = Boolean(initialQuestion);
 
-  const resetDraft = (nextQuestionType?: QuestionType) => {
-    setQuestionBody("");
-    setQuestionType(nextQuestionType ?? defaultQuestionType);
+  const resetDraft = (nextQuestionType?: QuestionType, question?: EmployerExamQuestion | null) => {
+    setQuestionBody(question?.title ?? "");
+    setQuestionType(question?.type ?? nextQuestionType ?? defaultQuestionType);
     setScore("1");
-    setOptions(getInitialOptions());
+    setOptions(toOptionDrafts(question));
     setFormError("");
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
-      resetDraft(defaultQuestionType);
+      resetDraft(defaultQuestionType, initialQuestion);
     }
 
     onOpenChange(nextOpen);
@@ -161,12 +182,12 @@ export default function AddQuestionModal({
       return;
     }
 
-    resetDraft(questionType);
+    resetDraft(questionType, isEditMode ? initialQuestion : null);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-215">
+      <DialogContent className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-2xl pb-4 sm:max-w-215">
         <DialogHeader className="border-b border-[#e5e7eb] px-5 py-4 mt-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -174,7 +195,7 @@ export default function AddQuestionModal({
                 1
               </span>
               <DialogTitle className="text-[22px] font-semibold text-[#334155]">
-                Question 1
+                {isEditMode ? "Edit Question" : "Question 1"}
               </DialogTitle>
             </div>
 
@@ -208,7 +229,9 @@ export default function AddQuestionModal({
           </div>
 
           <DialogDescription className="sr-only">
-            Add a question and options like the design.
+            {isEditMode
+              ? "Edit an existing question and options."
+              : "Add a question and options like the design."}
           </DialogDescription>
         </DialogHeader>
 
@@ -220,7 +243,7 @@ export default function AddQuestionModal({
           />
 
           {questionType !== "TEXT" ? (
-            <div className="space-y-4">
+            <div className="space-y-4 pl-5">
               {options.map((option, index) => (
                 <div key={option.id} className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
@@ -275,7 +298,7 @@ export default function AddQuestionModal({
           {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
         </div>
 
-        <DialogFooter className="border-t border-[#e5e7eb] bg-white px-5 py-4">
+        <DialogFooter className="border-t border-[#e5e7eb] bg-white px-5 py-2">
           <Button
             className="h-10 w-full rounded-xl border border-[#b9a8ff] bg-white text-[#6633ff] hover:bg-[#f6f3ff] sm:w-auto sm:min-w-28"
             disabled={isSubmitting}
@@ -283,16 +306,18 @@ export default function AddQuestionModal({
             variant="outline"
             onClick={() => handleSave(true)}
           >
-            {isSubmitting ? "Saving..." : "Save"}
+            {isSubmitting ? "Saving..." : isEditMode ? "Update" : "Save"}
           </Button>
-          <Button
-            className="h-10 w-full rounded-xl bg-[#6633ff] text-white hover:bg-[#5b2ef0] sm:w-auto sm:min-w-36"
-            disabled={isSubmitting}
-            type="button"
-            onClick={() => handleSave(false)}
-          >
-            {isSubmitting ? "Saving..." : "Save & Add More"}
-          </Button>
+          {!isEditMode ? (
+            <Button
+              className="h-10 w-full rounded-xl bg-[#6633ff] text-white hover:bg-[#5b2ef0] sm:w-auto sm:min-w-36"
+              disabled={isSubmitting}
+              type="button"
+              onClick={() => handleSave(false)}
+            >
+              {isSubmitting ? "Saving..." : "Save & Add More"}
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>
