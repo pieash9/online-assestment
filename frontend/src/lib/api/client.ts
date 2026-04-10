@@ -3,7 +3,7 @@
 import axios, { AxiosError } from "axios";
 import type { ApiErrorResponse, ApiResponse } from "@/lib/api/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
 
 export const AUTH_TOKEN_STORAGE_KEY = "auth_token";
 
