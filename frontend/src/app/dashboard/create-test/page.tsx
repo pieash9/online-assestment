@@ -1,12 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import QuestionSetStep from "@/components/dashboard/QuestionSetStep";
 import OnlineTestForm from "@/components/form/OnlineTestForm";
-import { useCreateExamMutation } from "@/hooks/api/useEmployer";
+import {
+  useCreateExamMutation,
+  useEmployerExamQuery,
+  useUpdateExamMutation,
+} from "@/hooks/api/useEmployer";
 import { useAppSelector } from "@/hooks/useRedux";
 import { getApiErrorMessage } from "@/lib/api/client";
 import {
@@ -16,14 +22,19 @@ import {
   type OnlineTestFormValues,
 } from "@/lib/forms/online-test";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function CreateTestPage() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
   const createExamMutation = useCreateExamMutation();
+  const updateExamMutation = useUpdateExamMutation();
+
   const [step, setStep] = useState<1 | 2>(1);
+  const [createdExamId, setCreatedExamId] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const createdExamQuery = useEmployerExamQuery(createdExamId);
 
   const {
     control,
@@ -36,75 +47,42 @@ export default function CreateTestPage() {
   });
 
   const values = useWatch({ control }) as OnlineTestFormInput;
-  const errorMessage = createExamMutation.error
-    ? getApiErrorMessage(createExamMutation.error)
-    : "";
 
-  const formatNumericValue = (value: unknown, suffix?: string) => {
-    if (typeof value !== "number") {
-      return "Not set";
-    }
-
-    return suffix ? `${value} ${suffix}` : String(value);
-  };
-
-  const reviewItems = useMemo<Array<{ label: string; value: string }>>(
-    () => [
-      { label: "Online Test Title", value: values.title || "Not set" },
-      {
-        label: "Total Candidates",
-        value:
-          typeof values.totalCandidates === "number"
-            ? values.totalCandidates.toLocaleString()
-            : "Not set",
-      },
-      { label: "Total Slots", value: formatNumericValue(values.totalSlots) },
-      { label: "Question Sets", value: formatNumericValue(values.questionSets) },
-      { label: "Question Type", value: values.questionType || "Not set" },
-      {
-        label: "Start Time",
-        value: values.startTime ? new Date(values.startTime).toLocaleString() : "Not set",
-      },
-      {
-        label: "End Time",
-        value: values.endTime ? new Date(values.endTime).toLocaleString() : "Not set",
-      },
-      {
-        label: "Duration Per Slot",
-        value: formatNumericValue(values.durationMinutes, "Minutes"),
-      },
-      {
-        label: "Negative Marking",
-        value: formatNumericValue(values.negativeMarking),
-      },
-    ],
-    [values],
-  );
-
-  const handleNext = async () => {
-    setStep(2);
-  };
-
-  const onCreate = async (formValues: OnlineTestFormValues) => {
+  const onSubmitBasicInfo = async (formValues: OnlineTestFormValues) => {
     setSuccessMessage("");
 
     try {
-      await createExamMutation.mutateAsync({
+      const payload = {
         ...formValues,
         startTime: new Date(formValues.startTime).toISOString(),
         endTime: new Date(formValues.endTime).toISOString(),
-      });
+      };
 
-      setSuccessMessage("Online test created successfully. Redirecting...");
+      if (!createdExamId) {
+        const createdExam = await createExamMutation.mutateAsync(payload);
+        setCreatedExamId(createdExam.id);
+        setSuccessMessage("Basic information saved. Add questions now.");
+      } else {
+        await updateExamMutation.mutateAsync({ examId: createdExamId, payload });
+        setSuccessMessage("Basic information updated. Continue with questions.");
+      }
 
-      startTransition(() => {
-        router.push("/dashboard");
-        router.refresh();
-      });
+      setStep(2);
     } catch {
       setSuccessMessage("");
     }
   };
+
+  const handleCancel = () => {
+    router.push("/dashboard");
+  };
+
+  const isMutationError = createExamMutation.isError || updateExamMutation.isError;
+  const mutationErrorMessage = createExamMutation.isError
+    ? getApiErrorMessage(createExamMutation.error)
+    : updateExamMutation.isError
+      ? getApiErrorMessage(updateExamMutation.error)
+      : "";
 
   if (user?.role !== "EMPLOYER") {
     return (
@@ -139,7 +117,7 @@ export default function CreateTestPage() {
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="flex size-6 items-center justify-center rounded-full bg-[#6633ff] text-sm font-semibold text-white">
-                    1
+                    {step === 2 ? <Check className="size-3.5" /> : "1"}
                   </div>
                   <span className="font-medium text-[#334155]">Basic Info</span>
                 </div>
@@ -159,7 +137,7 @@ export default function CreateTestPage() {
                       step === 2 ? "text-[#334155]" : "text-[#64748b]"
                     }`}
                   >
-                    Review
+                    Questions Sets
                   </span>
                 </div>
               </div>
@@ -173,72 +151,76 @@ export default function CreateTestPage() {
           </div>
         </div>
 
-        <Card className="mx-auto w-full max-w-238.5 rounded-2xl border border-[#e5e7eb] py-0 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
-          <CardHeader className="border-b px-6 py-6 sm:px-8">
-            <CardTitle className="text-[20px] font-semibold leading-[1.3] text-[#334155]">
-              {step === 1 ? "Basic Information" : "Review Information"}
-            </CardTitle>
-          </CardHeader>
+        {step === 1 ? (
+          <Card className="mx-auto w-full max-w-238.5 rounded-2xl border border-[#e5e7eb] py-0 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
+            <CardHeader className="border-b px-6 py-6 sm:px-8">
+              <CardTitle className="text-[20px] font-semibold leading-[1.3] text-[#334155]">
+                Basic Information
+              </CardTitle>
+            </CardHeader>
 
-          <CardContent className="px-6 py-8 sm:px-8">
-            {step === 1 ? (
+            <CardContent className="px-6 py-8 sm:px-8">
               <OnlineTestForm
                 control={control}
                 errors={errors}
-                isSubmitting={isSubmitting}
+                formId="create-exam-basic-form"
+                isSubmitting={isSubmitting || createExamMutation.isPending || updateExamMutation.isPending}
                 register={register}
+                showActions={false}
                 values={values}
-                onCancel={() => router.push("/dashboard")}
-                onSubmit={handleSubmit(handleNext)}
+                onCancel={handleCancel}
+                onSubmit={handleSubmit(onSubmitBasicInfo)}
                 submitLabel="Save & Continue"
                 submittingLabel="Saving..."
               />
-            ) : (
-              <div className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  {reviewItems.map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-2xl border border-[#e5e7eb] bg-[#f8fafc] px-5 py-4"
-                    >
-                      <p className="text-sm font-medium leading-6 text-[#64748b]">
-                        {item.label}
-                      </p>
-                      <p className="mt-1 text-base font-semibold leading-7 text-[#334155]">
-                        {item.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <QuestionSetStep
+            defaultQuestionType={values.questionType}
+            examId={createdExamId}
+            questions={createdExamQuery.data?.questions ?? []}
+          />
+        )}
 
-                <CardFooter className="flex items-center justify-between border-t bg-[#f8fafc] px-6 py-6 sm:px-8">
-                  <Button
-                    className="h-12 rounded-xl border border-[#e5e7eb] bg-white px-8 text-[#334155] hover:bg-[#f8fafc]"
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    className="h-12 rounded-xl bg-[#6633ff] px-8 text-white hover:bg-[#5b2ef0]"
-                    disabled={createExamMutation.isPending || isSubmitting}
-                    type="button"
-                    onClick={handleSubmit(onCreate)}
-                  >
-                    {createExamMutation.isPending || isSubmitting
-                      ? "Creating..."
-                      : "Create Exam"}
-                  </Button>
-                </CardFooter>
-              </div>
-            )}
+        <Card className="mx-auto w-full max-w-238.5 rounded-2xl border border-[#e5e7eb] py-0 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
+          <CardContent className="px-6 py-5 sm:px-8">
+            <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4 sm:px-6">
+              <Button
+                className="h-11 min-w-40 rounded-xl border border-[#d7dde7] bg-white px-8 text-[#334155] hover:bg-[#f8fafc]"
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="h-11 min-w-44 rounded-xl bg-[#6633ff] px-8 text-white hover:bg-[#5b2ef0]"
+                disabled={isSubmitting || createExamMutation.isPending || updateExamMutation.isPending}
+                form="create-exam-basic-form"
+                type={step === 1 ? "submit" : "button"}
+                onClick={() => {
+                  if (step === 2) {
+                    startTransition(() => {
+                      router.push("/dashboard");
+                      router.refresh();
+                    });
+                  }
+                }}
+              >
+                {step === 2
+                  ? "Finish"
+                  : createExamMutation.isPending || updateExamMutation.isPending || isSubmitting
+                    ? "Saving..."
+                    : "Save & Continue"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         <div className="mx-auto min-h-6 text-center text-sm">
-          <p className={errorMessage ? "text-red-600" : "text-emerald-600"}>
-            {errorMessage || successMessage}
+          <p className={isMutationError ? "text-red-600" : "text-emerald-600"}>
+            {isMutationError ? mutationErrorMessage : successMessage}
           </p>
         </div>
       </div>

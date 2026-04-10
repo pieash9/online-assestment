@@ -1,11 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import QuestionSetStep from "@/components/dashboard/QuestionSetStep";
 import OnlineTestForm from "@/components/form/OnlineTestForm";
 import { useEmployerExamQuery, useUpdateExamMutation } from "@/hooks/api/useEmployer";
 import { useAppSelector } from "@/hooks/useRedux";
@@ -29,6 +30,7 @@ export default function EditTestPage() {
   const examQuery = useEmployerExamQuery(examId);
   const updateExamMutation = useUpdateExamMutation();
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [isEditing, setIsEditing] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -121,6 +123,7 @@ export default function EditTestPage() {
 
       setSuccessMessage("Basic information updated successfully.");
       setIsEditing(false);
+      setStep(2);
     } catch {
       setSuccessMessage("");
     }
@@ -186,16 +189,28 @@ export default function EditTestPage() {
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="flex size-6 items-center justify-center rounded-full bg-[#6633ff] text-sm font-semibold text-white">
-                    1
+                    {step === 2 ? <Check className="size-3.5" /> : "1"}
                   </div>
                   <span className="font-medium text-[#334155]">Basic Info</span>
                 </div>
                 <div className="h-px w-20 bg-[#cbd5e1]" />
                 <div className="flex items-center gap-2">
-                  <div className="flex size-6 items-center justify-center rounded-full bg-[#f1f5f9] text-sm font-semibold text-[#64748b]">
+                  <div
+                    className={`flex size-6 items-center justify-center rounded-full text-sm font-semibold ${
+                      step === 2
+                        ? "bg-[#6633ff] text-white"
+                        : "bg-[#f1f5f9] text-[#64748b]"
+                    }`}
+                  >
                     2
                   </div>
-                  <span className="font-medium text-[#64748b]">Questions</span>
+                  <span
+                    className={`font-medium ${
+                      step === 2 ? "text-[#334155]" : "text-[#64748b]"
+                    }`}
+                  >
+                    Questions Sets
+                  </span>
                 </div>
               </div>
             </div>
@@ -212,61 +227,72 @@ export default function EditTestPage() {
           </div>
         </div>
 
-        <Card className="mx-auto w-full max-w-238.5 rounded-2xl border border-[#e5e7eb] py-0 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
-          <CardHeader className="px-6 py-6 sm:px-8">
-            <div className="flex items-center justify-between gap-4">
-              <CardTitle className="text-[20px] font-semibold leading-[1.3] text-[#334155]">
-                Basic Information
-              </CardTitle>
-              <Button
-                className="h-10 cursor-pointer rounded-xl border-none bg-white px-4 text-[#6633ff] hover:bg-[#f7f3ff]"
-                type="button"
-                variant="default"
-                onClick={() => setIsEditing(true)}
-              >
-                <Pencil className="size-4" />
-                Edit
-              </Button>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6 px-6 py-8 sm:px-8">
-            {examQuery.isLoading ? (
-              <p className="text-sm text-[#64748b]">Loading exam information...</p>
-            ) : examQuery.isError ? (
-              <p className="text-sm text-red-600">{getApiErrorMessage(examQuery.error)}</p>
-            ) : !isEditing ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {summaryItems.map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border border-[#e5e7eb] bg-[#f8fafc] px-5 py-4"
-                  >
-                    <p className="text-sm font-medium leading-6 text-[#64748b]">{item.label}</p>
-                    <p className="mt-1 text-base font-semibold leading-7 text-[#334155]">
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
+        {step === 1 ? (
+          <Card className="mx-auto w-full max-w-238.5 rounded-2xl border border-[#e5e7eb] py-0 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
+            <CardHeader className="px-6 py-6 sm:px-8">
+              <div className="flex items-center justify-between gap-4">
+                <CardTitle className="text-[20px] font-semibold leading-[1.3] text-[#334155]">
+                  Basic Information
+                </CardTitle>
+                <Button
+                  className="h-10 cursor-pointer rounded-xl border-none bg-white px-4 text-[#6633ff] hover:bg-[#f7f3ff]"
+                  type="button"
+                  variant="default"
+                  onClick={() => {
+                    setStep(1);
+                    setIsEditing(true);
+                  }}
+                >
+                  <Pencil className="size-4" />
+                  Edit
+                </Button>
               </div>
-            ) : (
-              <OnlineTestForm
-                control={control}
-                enforceFutureStartTime={false}
-                errors={errors}
-                formId="online-test-edit-form"
-                isSubmitting={isSubmitting}
-                register={register}
-                showActions={false}
-                values={values}
-                onCancel={() => setIsEditing(false)}
-                onSubmit={handleSubmit(onSubmit)}
-                submitLabel="Save & Continue"
-                submittingLabel="Saving..."
-              />
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+
+            <CardContent className="space-y-6 px-6 py-8 sm:px-8">
+              {examQuery.isLoading ? (
+                <p className="text-sm text-[#64748b]">Loading exam information...</p>
+              ) : examQuery.isError ? (
+                <p className="text-sm text-red-600">{getApiErrorMessage(examQuery.error)}</p>
+              ) : !isEditing ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {summaryItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border border-[#e5e7eb] bg-[#f8fafc] px-5 py-4"
+                    >
+                      <p className="text-sm font-medium leading-6 text-[#64748b]">{item.label}</p>
+                      <p className="mt-1 text-base font-semibold leading-7 text-[#334155]">
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <OnlineTestForm
+                  control={control}
+                  enforceFutureStartTime={false}
+                  errors={errors}
+                  formId="online-test-edit-form"
+                  isSubmitting={isSubmitting}
+                  register={register}
+                  showActions={false}
+                  values={values}
+                  onCancel={() => setIsEditing(false)}
+                  onSubmit={handleSubmit(onSubmit)}
+                  submitLabel="Save & Continue"
+                  submittingLabel="Saving..."
+                />
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <QuestionSetStep
+            defaultQuestionType={values.questionType}
+            examId={examId}
+            questions={examQuery.data?.questions ?? []}
+          />
+        )}
 
         <Card className="mx-auto w-full max-w-238.5 rounded-2xl border border-[#e5e7eb] py-0 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
           <CardContent className="px-6 py-5 sm:px-8">
@@ -283,10 +309,23 @@ export default function EditTestPage() {
                 className="h-11 min-w-44 rounded-xl bg-[#6633ff] px-8 text-white hover:bg-[#5b2ef0]"
                 disabled={isSubmitting}
                 form="online-test-edit-form"
-                type={isEditing ? "submit" : "button"}
-                onClick={!isEditing ? () => setIsEditing(true) : undefined}
+                type={step === 1 && isEditing ? "submit" : "button"}
+                onClick={() => {
+                  if (step === 1 && !isEditing) {
+                    setStep(2);
+                    return;
+                  }
+
+                  if (step === 2) {
+                    setStep(1);
+                  }
+                }}
               >
-                {isSubmitting ? "Saving..." : "Save & Continue"}
+                {step === 2
+                  ? "Back To Basic Info"
+                  : isSubmitting
+                    ? "Saving..."
+                    : "Save & Continue"}
               </Button>
             </div>
           </CardContent>
