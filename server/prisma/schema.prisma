@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  EMPLOYER
+  CANDIDATE
+}
+
+enum QuestionType {
+  CHECKBOX
+  RADIO
+  TEXT
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  STARTED
+  SUBMITTED
+  TIMEOUT
+}
+
+enum AttemptStatus {
+  STARTED
+  SUBMITTED
+  TIMEOUT
+}
+
+model User {
+  id              String           @id @default(cuid())
+  name            String
+  email           String           @unique
+  password    String
+  role            UserRole
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdExams    Exam[]           @relation("CreatedExams")
+  examAssignments ExamAssignment[]
+  examAttempts    ExamAttempt[]
+
+  @@map("users")
+}
+
+model Exam {
+  id              String           @id @default(cuid())
+  title           String
+  totalCandidates Int
+  totalSlots      Int
+  questionSets    Int
+  questionType    String
+  negativeMarking Decimal          @default(0) @db.Decimal(5, 2)
+  startTime       DateTime
+  endTime         DateTime
+  durationMinutes Int
+  createdById     String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       User             @relation("CreatedExams", fields: [createdById], references: [id], onDelete: Cascade)
+  questions       Question[]
+  assignments     ExamAssignment[]
+  attempts        ExamAttempt[]
+
+  @@map("exams")
+}
+
+model Question {
+  id        String           @id @default(cuid())
+  examId    String
+  title     String
+  type      QuestionType
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  exam      Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  options   QuestionOption[]
+  answers   Answer[]
+
+  @@map("questions")
+}
+
+model QuestionOption {
+  id          String         @id @default(cuid())
+  questionId  String
+  label       String
+  isCorrect   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  question    Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answerLinks AnswerOption[]
+
+  @@map("question_options")
+}
+
+model ExamAssignment {
+  id          String           @id @default(cuid())
+  examId      String
+  candidateId String
+  status      AssignmentStatus @default(ASSIGNED)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  exam        Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  candidate   User             @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, candidateId])
+  @@map("exam_assignments")
+}
+
+model ExamAttempt {
+  id                  String        @id @default(cuid())
+  examId              String
+  candidateId         String
+  status              AttemptStatus @default(STARTED)
+  startedAt           DateTime      @default(now())
+  submittedAt         DateTime?
+  score               Float         @default(0)
+  tabSwitchCount      Int           @default(0)
+  fullscreenExitCount Int           @default(0)
+  autoSubmitted       Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  exam                Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  candidate           User          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  answers             Answer[]
+
+  @@unique([examId, candidateId])
+  @@map("exam_attempts")
+}
+
+model Answer {
+  id              String         @id @default(cuid())
+  attemptId       String
+  questionId      String
+  textAnswer      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  attempt         ExamAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptions AnswerOption[]
+
+  @@unique([attemptId, questionId])
+  @@map("answers")
+}
+
+model AnswerOption {
+  id       String         @id @default(cuid())
+  answerId String
+  optionId String
+  answer   Answer         @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  option   QuestionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, optionId])
+  @@map("answer_options")
+}
