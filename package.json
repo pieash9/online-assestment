@@ -1,0 +1,9 @@
+{
+  "name": "frontend-task-akij",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix frontend && npm install --prefix server",
+    "build": "npm run prisma:generate --prefix server && npm run build --prefix frontend",
+    "vercel-build": "npm run build"
+  }
+}

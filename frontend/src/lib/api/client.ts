@@ -5,7 +5,7 @@ import type { ApiErrorResponse, ApiResponse } from "@/lib/api/types";
 import { store } from "@/store";
 import { clearAuthUser } from "@/store/slices/authSlice";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_BASE_URL ?? "/api";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
