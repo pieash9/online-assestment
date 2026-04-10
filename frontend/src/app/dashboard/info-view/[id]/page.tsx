@@ -3,105 +3,26 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
+import { useForm, useWatch } from "react-hook-form";
+import OnlineTestForm from "@/components/form/OnlineTestForm";
 import { useEmployerExamQuery } from "@/hooks/api/useEmployer";
 import { useAppSelector } from "@/hooks/useRedux";
 import { getApiErrorMessage } from "@/lib/api/client";
+import {
+  onlineTestDefaultValues,
+  onlineTestSchema,
+  questionTypeLabelMap,
+  toLocalInputValue,
+  type OnlineTestFormInput,
+  type OnlineTestFormValues,
+} from "@/lib/forms/online-test";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const questionTypeOptions = ["RADIO", "CHECKBOX", "TEXT"] as const;
-
-const createExamSchema = z
-  .object({
-    title: z.string().min(1, "Online test title is required."),
-    totalCandidates: z.coerce
-      .number()
-      .int()
-      .positive("Enter a valid candidate count."),
-    totalSlots: z.coerce.number().int().positive("Enter a valid slot count."),
-    questionSets: z.coerce
-      .number()
-      .int()
-      .positive("Enter a valid question set count."),
-    questionType: z.enum(questionTypeOptions, {
-      message: "Select a question type.",
-    }),
-    startTime: z.string().min(1, "Start date and time is required."),
-    endTime: z.string().min(1, "End date and time is required."),
-    durationMinutes: z.coerce
-      .number()
-      .int()
-      .positive("Enter duration in minutes."),
-    negativeMarking: z.coerce
-      .number()
-      .min(0, "Negative marking cannot be negative."),
-  })
-  .refine((values) => new Date(values.endTime) > new Date(values.startTime), {
-    message: "End time must be after the start time.",
-    path: ["endTime"],
-  });
-
-type CreateExamFormValues = z.infer<typeof createExamSchema>;
-type CreateExamFormInput = z.input<typeof createExamSchema>;
-
-const defaultValues: CreateExamFormValues = {
-  title: "",
-  totalCandidates: 10000,
-  totalSlots: 3,
-  questionSets: 3,
-  questionType: "RADIO",
-  startTime: "",
-  endTime: "",
-  durationMinutes: 30,
-  negativeMarking: 0,
-};
-
-const questionTypeLabelMap: Record<CreateExamFormValues["questionType"], string> = {
-  RADIO: "MCQ",
-  CHECKBOX: "Checkbox",
-  TEXT: "Text",
-};
-
-function toDatetimeLocalValue(date: Date) {
-  const pad = (value: number) => String(value).padStart(2, "0");
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate(),
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function toLocalInputValue(dateString: string) {
-  const parsedDate = new Date(dateString);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "";
-  }
-
-  return toDatetimeLocalValue(parsedDate);
-}
 
 export default function EditTestPage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const examId = typeof params.id === "string" ? params.id : "";
   const user = useAppSelector((state) => state.auth.user);
@@ -115,11 +36,10 @@ export default function EditTestPage() {
     handleSubmit,
     register,
     reset,
-    watch,
     formState: { errors, isSubmitting },
-  } = useForm<CreateExamFormInput, unknown, CreateExamFormValues>({
-    resolver: zodResolver(createExamSchema),
-    defaultValues,
+  } = useForm<OnlineTestFormInput, unknown, OnlineTestFormValues>({
+    resolver: zodResolver(onlineTestSchema),
+    defaultValues: onlineTestDefaultValues,
   });
 
   useEffect(() => {
@@ -144,7 +64,7 @@ export default function EditTestPage() {
     });
   }, [examQuery.data, reset]);
 
-  const values = watch();
+  const values = useWatch({ control }) as OnlineTestFormInput;
 
   const summaryItems = useMemo<Array<{ label: string; value: string }>>(
     () => [
@@ -188,6 +108,30 @@ export default function EditTestPage() {
   const onSubmit = async () => {
     setSuccessMessage("Basic information is ready. Continue to the questions step.");
     setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    if (isEditing && examQuery.data) {
+      reset({
+        title: examQuery.data.title,
+        totalCandidates: examQuery.data.totalCandidates,
+        totalSlots: examQuery.data.totalSlots,
+        questionSets: examQuery.data.questionSets,
+        questionType:
+          examQuery.data.questionType === "CHECKBOX" ||
+          examQuery.data.questionType === "TEXT"
+            ? examQuery.data.questionType
+            : "RADIO",
+        startTime: toLocalInputValue(examQuery.data.startTime),
+        endTime: toLocalInputValue(examQuery.data.endTime),
+        durationMinutes: examQuery.data.durationMinutes,
+        negativeMarking: examQuery.data.negativeMarking,
+      });
+      setIsEditing(false);
+      return;
+    }
+
+    router.push("/dashboard");
   };
 
   if (user?.role !== "EMPLOYER") {
@@ -275,199 +219,59 @@ export default function EditTestPage() {
               <p className="text-sm text-[#64748b]">Loading exam information...</p>
             ) : examQuery.isError ? (
               <p className="text-sm text-red-600">{getApiErrorMessage(examQuery.error)}</p>
-            ) : (
-              <>
-                {!isEditing ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {summaryItems.map((item) => (
-                      <div
-                        key={item.label}
-                        className="rounded-2xl border border-[#e5e7eb] bg-[#f8fafc] px-5 py-4"
-                      >
-                        <p className="text-sm font-medium leading-6 text-[#64748b]">
-                          {item.label}
-                        </p>
-                        <p className="mt-1 text-base font-semibold leading-7 text-[#334155]">
-                          {item.value}
-                        </p>
-                      </div>
-                    ))}
+            ) : !isEditing ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {summaryItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-[#e5e7eb] bg-[#f8fafc] px-5 py-4"
+                  >
+                    <p className="text-sm font-medium leading-6 text-[#64748b]">{item.label}</p>
+                    <p className="mt-1 text-base font-semibold leading-7 text-[#334155]">
+                      {item.value}
+                    </p>
                   </div>
-                ) : (
-                  <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-                    <FieldGroup className="gap-6">
-                      <Field>
-                        <FieldLabel htmlFor="title">Online Test Title</FieldLabel>
-                        <FieldContent>
-                          <Input
-                            id="title"
-                            className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                            placeholder="Psychometric Test for Management Trainee Officer"
-                            {...register("title")}
-                          />
-                          <FieldError errors={[errors.title]} />
-                        </FieldContent>
-                      </Field>
-
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <Field>
-                          <FieldLabel htmlFor="totalCandidates">Total Candidates</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              id="totalCandidates"
-                              className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                              min={1}
-                              type="number"
-                              {...register("totalCandidates")}
-                            />
-                            <FieldError errors={[errors.totalCandidates]} />
-                          </FieldContent>
-                        </Field>
-
-                        <Field>
-                          <FieldLabel htmlFor="totalSlots">Total Slots</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              id="totalSlots"
-                              className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                              min={1}
-                              type="number"
-                              {...register("totalSlots")}
-                            />
-                            <FieldError errors={[errors.totalSlots]} />
-                          </FieldContent>
-                        </Field>
-                      </div>
-
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <Field>
-                          <FieldLabel htmlFor="questionSets">Question Sets</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              id="questionSets"
-                              className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                              min={1}
-                              type="number"
-                              {...register("questionSets")}
-                            />
-                            <FieldError errors={[errors.questionSets]} />
-                          </FieldContent>
-                        </Field>
-
-                        <Field>
-                          <FieldLabel>Question Type</FieldLabel>
-                          <FieldContent>
-                            <Controller
-                              control={control}
-                              name="questionType"
-                              render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <SelectTrigger className="h-12 w-full rounded-xl border-[#d1d5db] px-4 text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10">
-                                    <SelectValue placeholder="Select question type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectGroup>
-                                      <SelectItem value="RADIO">MCQ</SelectItem>
-                                      <SelectItem value="CHECKBOX">Checkbox</SelectItem>
-                                      <SelectItem value="TEXT">Text</SelectItem>
-                                    </SelectGroup>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            />
-                            <FieldError errors={[errors.questionType]} />
-                          </FieldContent>
-                        </Field>
-                      </div>
-
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <Field>
-                          <FieldLabel htmlFor="startTime">Start Time</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              id="startTime"
-                              className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                              min={toDatetimeLocalValue(new Date())}
-                              type="datetime-local"
-                              {...register("startTime")}
-                            />
-                            <FieldError errors={[errors.startTime]} />
-                          </FieldContent>
-                        </Field>
-
-                        <Field>
-                          <FieldLabel htmlFor="endTime">End Time</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              id="endTime"
-                              className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                              min={values.startTime || toDatetimeLocalValue(new Date())}
-                              type="datetime-local"
-                              {...register("endTime")}
-                            />
-                            <FieldError errors={[errors.endTime]} />
-                          </FieldContent>
-                        </Field>
-                      </div>
-
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <Field>
-                          <FieldLabel htmlFor="durationMinutes">
-                            Duration Per Slot (Minutes)
-                          </FieldLabel>
-                          <FieldContent>
-                            <Input
-                              id="durationMinutes"
-                              className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                              min={1}
-                              type="number"
-                              {...register("durationMinutes")}
-                            />
-                            <FieldError errors={[errors.durationMinutes]} />
-                          </FieldContent>
-                        </Field>
-
-                        <Field>
-                          <FieldLabel htmlFor="negativeMarking">Negative Marking</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              id="negativeMarking"
-                              className="h-12 rounded-xl border-[#d1d5db] text-sm text-[#334155] focus-visible:border-[#6633ff] focus-visible:ring-[#6633ff]/10"
-                              min={0}
-                              step="0.25"
-                              type="number"
-                              {...register("negativeMarking")}
-                            />
-                            <FieldDescription>
-                              Set 0 if there is no negative marking for this exam.
-                            </FieldDescription>
-                            <FieldError errors={[errors.negativeMarking]} />
-                          </FieldContent>
-                        </Field>
-                      </div>
-                    </FieldGroup>
-
-                    <div className="flex items-center justify-between gap-4 border-t bg-[#f8fafc] px-0 pt-6">
-                      <Button
-                        className="h-12 rounded-xl border border-[#e5e7eb] bg-white px-8 text-[#334155] hover:bg-[#f8fafc]"
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsEditing(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        className="h-12 rounded-xl bg-[#6633ff] px-8 text-white hover:bg-[#5b2ef0]"
-                        disabled={isSubmitting}
-                        type="submit"
-                      >
-                        {isSubmitting ? "Saving..." : "Save & Continue"}
-                      </Button>
-                    </div>
-                  </form>
-                )}
-              </>
+                ))}
+              </div>
+            ) : (
+              <OnlineTestForm
+                control={control}
+                errors={errors}
+                formId="online-test-edit-form"
+                isSubmitting={isSubmitting}
+                register={register}
+                showActions={false}
+                values={values}
+                onCancel={() => setIsEditing(false)}
+                onSubmit={handleSubmit(onSubmit)}
+                submitLabel="Save & Continue"
+                submittingLabel="Saving..."
+              />
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="mx-auto w-full max-w-238.5 rounded-2xl border border-[#e5e7eb] py-0 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
+          <CardContent className="px-6 py-5 sm:px-8">
+            <div className="flex items-center justify-between rounded-2xl bg-[#f8fafc] px-4 py-4 sm:px-6">
+              <Button
+                className="h-11 min-w-40 rounded-xl border border-[#d7dde7] bg-white px-8 text-[#334155] hover:bg-[#f8fafc]"
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="h-11 min-w-44 rounded-xl bg-[#6633ff] px-8 text-white hover:bg-[#5b2ef0]"
+                disabled={isSubmitting}
+                form="online-test-edit-form"
+                type={isEditing ? "submit" : "button"}
+                onClick={!isEditing ? () => setIsEditing(true) : undefined}
+              >
+                {isSubmitting ? "Saving..." : "Save & Continue"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
