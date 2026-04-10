@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import Link from "next/link";
 import OnlineTestCard, {
   type DashboardExamCard,
 } from "@/app/dashboard/components/OnlineTestCard";
@@ -149,9 +150,14 @@ export default function DashboardPage() {
             </div>
 
             {isEmployer ? (
-              <Button className="h-12 rounded-xl bg-[#6633ff] px-8 text-base font-semibold text-white shadow-none hover:bg-[#5b2ef0]">
-                <Plus data-icon="inline-start" />
-                Create Online Test
+              <Button
+                asChild
+                className="h-12 rounded-xl bg-[#6633ff] px-8 text-base font-semibold text-white shadow-none hover:bg-[#5b2ef0]"
+              >
+                <Link href="/dashboard/create-test">
+                  <Plus data-icon="inline-start" />
+                  Create Online Test
+                </Link>
               </Button>
             ) : null}
           </div>

@@ -2,6 +2,7 @@
 
 import { FileText, MonitorPlay, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export type DashboardExamCard = {
   id: string;
@@ -36,6 +37,7 @@ function Stat({
 }
 
 const OnlineTestCard = ({ exam, isEmployer }: OnlineTestCardProps) => {
+  const router = useRouter();
   return (
     <article className="flex min-h-44 flex-col justify-between rounded-2xl border border-[#e5e7eb] bg-white px-6 py-6 shadow-[0_2.714px_4.397px_rgba(192,192,192,0.03),0_6.863px_11.119px_rgba(192,192,192,0.04),0_13.999px_22.683px_rgba(192,192,192,0.05),0_28.836px_46.722px_rgba(192,192,192,0.06),0_79px_128px_rgba(192,192,192,0.09)]">
       <div className="flex flex-col gap-5">
@@ -64,6 +66,7 @@ const OnlineTestCard = ({ exam, isEmployer }: OnlineTestCardProps) => {
 
       <div className="pt-6">
         <Button
+          onClick={() => router.push(`/dashboard/info-view/${exam.id}`)}
           className="h-11 rounded-xl border border-[#6633ff] bg-white px-6 text-sm font-semibold text-[#6633ff] shadow-none hover:bg-[#f7f3ff]"
           variant="outline"
         >
