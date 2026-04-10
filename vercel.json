@@ -8,12 +8,7 @@
     },
     {
       "src": "api/[...route].ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "server/**"
-        ]
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
