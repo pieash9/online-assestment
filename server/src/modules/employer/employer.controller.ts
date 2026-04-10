@@ -106,6 +106,45 @@ export async function createExam(req: Request, res: Response, next: NextFunction
   }
 }
 
+export async function updateExam(req: Request, res: Response, next: NextFunction) {
+  try {
+    const employerId = req.user!.userId;
+    const examId = String(req.params.id);
+    const {
+      title,
+      totalCandidates,
+      totalSlots,
+      questionSets,
+      questionType,
+      startTime,
+      endTime,
+      durationMinutes,
+      negativeMarking
+    } = req.body;
+
+    await ensureEmployerOwnsExam(examId, employerId);
+
+    const exam = await prisma.exam.update({
+      where: { id: examId },
+      data: {
+        title,
+        totalCandidates,
+        totalSlots,
+        questionSets,
+        questionType,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        durationMinutes,
+        negativeMarking
+      }
+    });
+
+    return res.json(sendSuccess(exam, "Exam updated successfully"));
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export async function getEmployerExam(req: Request, res: Response, next: NextFunction) {
   try {
     const employerId = req.user!.userId;

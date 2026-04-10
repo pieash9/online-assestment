@@ -40,6 +40,21 @@ export function useCreateExamMutation() {
   });
 }
 
+export function useUpdateExamMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ examId, payload }: { examId: string; payload: CreateExamInput }) =>
+      employerService.updateExam(examId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.employerExam(variables.examId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employerExams });
+    },
+  });
+}
+
 export function useAddQuestionMutation() {
   const queryClient = useQueryClient();
 
@@ -60,7 +75,6 @@ export function useUpdateQuestionMutation() {
 
   return useMutation({
     mutationFn: ({
-      examId,
       questionId,
       payload,
     }: {
@@ -81,7 +95,7 @@ export function useDeleteQuestionMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ examId, questionId }: { examId: string; questionId: string }) =>
+    mutationFn: ({ questionId }: { examId: string; questionId: string }) =>
       employerService.deleteQuestion(questionId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({

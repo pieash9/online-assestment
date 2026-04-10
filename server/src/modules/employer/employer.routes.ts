@@ -9,12 +9,14 @@ import {
   getEmployerExam,
   listEmployerExams,
   listExamCandidates,
+  updateExam,
   updateQuestion
 } from "./employer.controller";
 import {
   createExamSchema,
   createQuestionSchema,
   examIdParamSchema,
+  updateExamSchema,
   updateQuestionSchema
 } from "./employer.validation";
 
@@ -25,6 +27,7 @@ router.use(requireAuth, requireRole(UserRole.EMPLOYER));
 router.get("/exams", listEmployerExams);
 router.post("/exams", validate(createExamSchema), createExam);
 router.get("/exams/:id", validate(examIdParamSchema), getEmployerExam);
+router.put("/exams/:id", validate(updateExamSchema), updateExam);
 router.post("/exams/:id/questions", validate(createQuestionSchema), addQuestion);
 router.get("/exams/:id/candidates", validate(examIdParamSchema), listExamCandidates);
 router.put("/questions/:id", validate(updateQuestionSchema), updateQuestion);

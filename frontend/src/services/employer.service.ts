@@ -15,6 +15,9 @@ export const employerService = {
   createExam: (payload: CreateExamInput) =>
     unwrapResponse<EmployerExamDetails>(apiClient.post("/employer/exams", payload)),
 
+  updateExam: (examId: string, payload: CreateExamInput) =>
+    unwrapResponse<EmployerExamDetails>(apiClient.put(`/employer/exams/${examId}`, payload)),
+
   getExam: (examId: string) =>
     unwrapResponse<EmployerExamDetails>(apiClient.get(`/employer/exams/${examId}`)),
 

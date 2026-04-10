@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import OnlineTestForm from "@/components/form/OnlineTestForm";
-import { useEmployerExamQuery } from "@/hooks/api/useEmployer";
+import { useEmployerExamQuery, useUpdateExamMutation } from "@/hooks/api/useEmployer";
 import { useAppSelector } from "@/hooks/useRedux";
 import { getApiErrorMessage } from "@/lib/api/client";
 import {
@@ -27,6 +27,7 @@ export default function EditTestPage() {
   const examId = typeof params.id === "string" ? params.id : "";
   const user = useAppSelector((state) => state.auth.user);
   const examQuery = useEmployerExamQuery(examId);
+  const updateExamMutation = useUpdateExamMutation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -105,9 +106,24 @@ export default function EditTestPage() {
     [values],
   );
 
-  const onSubmit = async () => {
-    setSuccessMessage("Basic information is ready. Continue to the questions step.");
-    setIsEditing(false);
+  const onSubmit = async (formValues: OnlineTestFormValues) => {
+    setSuccessMessage("");
+
+    try {
+      await updateExamMutation.mutateAsync({
+        examId,
+        payload: {
+          ...formValues,
+          startTime: new Date(formValues.startTime).toISOString(),
+          endTime: new Date(formValues.endTime).toISOString(),
+        },
+      });
+
+      setSuccessMessage("Basic information updated successfully.");
+      setIsEditing(false);
+    } catch {
+      setSuccessMessage("");
+    }
   };
 
   const handleCancel = () => {
@@ -236,6 +252,7 @@ export default function EditTestPage() {
             ) : (
               <OnlineTestForm
                 control={control}
+                enforceFutureStartTime={false}
                 errors={errors}
                 formId="online-test-edit-form"
                 isSubmitting={isSubmitting}
@@ -276,8 +293,18 @@ export default function EditTestPage() {
         </Card>
 
         <div className="mx-auto min-h-6 text-center text-sm">
-          <p className={successMessage ? "text-emerald-600" : "text-[#64748b]"}>
-            {successMessage}
+          <p
+            className={
+              updateExamMutation.isError
+                ? "text-red-600"
+                : successMessage
+                  ? "text-emerald-600"
+                  : "text-[#64748b]"
+            }
+          >
+            {updateExamMutation.isError
+              ? getApiErrorMessage(updateExamMutation.error)
+              : successMessage}
           </p>
         </div>
       </div>

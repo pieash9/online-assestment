@@ -1,4 +1,5 @@
 import type { BaseSyntheticEvent } from "react";
+import { useMemo } from "react";
 import {
     Controller,
     type Control,
@@ -40,6 +41,7 @@ type OnlineTestFormProps = {
     isSubmitting?: boolean;
     showActions?: boolean;
     formId?: string;
+    enforceFutureStartTime?: boolean;
 };
 
 const inputClassName =
@@ -57,7 +59,13 @@ const OnlineTestForm = ({
     isSubmitting = false,
     showActions = true,
     formId,
+    enforceFutureStartTime = true,
 }: OnlineTestFormProps) => {
+    const initialMinDateTime = useMemo(() => toDatetimeLocalValue(new Date()), []);
+
+    const startTimeMin = enforceFutureStartTime ? initialMinDateTime : undefined;
+    const endTimeMin = values.startTime || (enforceFutureStartTime ? initialMinDateTime : undefined);
+
     return (
         <form className="space-y-6" id={formId} onSubmit={onSubmit}>
             <FieldGroup className="gap-6">
@@ -152,7 +160,7 @@ const OnlineTestForm = ({
                             <Input
                                 id="startTime"
                                 className={inputClassName}
-                                min={toDatetimeLocalValue(new Date())}
+                                min={startTimeMin}
                                 type="datetime-local"
                                 {...register("startTime")}
                             />
@@ -166,7 +174,7 @@ const OnlineTestForm = ({
                             <Input
                                 id="endTime"
                                 className={inputClassName}
-                                min={values.startTime || toDatetimeLocalValue(new Date())}
+                                min={endTimeMin}
                                 type="datetime-local"
                                 {...register("endTime")}
                             />
