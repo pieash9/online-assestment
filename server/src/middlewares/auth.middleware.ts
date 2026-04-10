@@ -3,6 +3,10 @@ import jwt from "jsonwebtoken";
 import { UserRole } from "@prisma/client";
 import { env } from "../config/env";
 import { sendError } from "../utils/api-response";
+import {
+  clearAuthCookie,
+  getAuthTokenFromRequest,
+} from "../modules/auth/auth.cookies";
 
 type JwtPayload = {
   userId: string;
@@ -10,19 +14,18 @@ type JwtPayload = {
 };
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
+  const token = getAuthTokenFromRequest(req);
 
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!token) {
     return res.status(401).json(sendError("Unauthorized"));
   }
-
-  const token = authHeader.split(" ")[1];
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
     req.user = payload;
     return next();
   } catch {
+    clearAuthCookie(res);
     return res.status(401).json(sendError("Invalid or expired token"));
   }
 }

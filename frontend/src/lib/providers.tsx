@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import StoreProvider from "@/lib/StoreProvider";
+import AuthBootstrap from "@/components/shared/AuthBootstrap";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 type ProvidersProps = {
@@ -26,6 +27,7 @@ export default function Providers({ children }: ProvidersProps) {
     <StoreProvider>
       <TooltipProvider>
         <QueryClientProvider client={queryClient}>
+          <AuthBootstrap />
           {children}
         </QueryClientProvider>
       </TooltipProvider>

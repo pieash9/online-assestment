@@ -31,7 +31,10 @@ export type LoginInput = {
 };
 
 export type LoginResponse = {
-  token: string;
+  user: AuthUser;
+};
+
+export type CurrentUserResponse = {
   user: AuthUser;
 };
 

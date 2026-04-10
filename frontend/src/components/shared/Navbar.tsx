@@ -1,6 +1,12 @@
-import { Menu, Home, LogIn } from "lucide-react";
+ "use client";
+
+import { LogOut, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useLogoutMutation } from "@/hooks/api/useAuth";
+import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
+import { clearAuthUser } from "@/store/slices/authSlice";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -11,6 +17,21 @@ import {
 } from "@/components/ui/sheet";
 
 const Navbar = () => {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
+  const logoutMutation = useLogoutMutation();
+
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+    } finally {
+      dispatch(clearAuthUser());
+      router.push("/login");
+      router.refresh();
+    }
+  };
+
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
       <div className="mx-auto flex min-h-20 w-full max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-20">
@@ -23,11 +44,34 @@ const Navbar = () => {
             width={116}
           />
         </Link>
-          <div className="flex flex-col mx-auto">
-            <span className="text-base font-semibold text-foreground sm:text-lg">
-              Akij Resource
+        <div className="flex flex-1 flex-col items-center">
+          <span className="text-base font-semibold text-foreground sm:text-lg">
+            Akij Resource
+          </span>
+          {user ? (
+            <span className="text-xs text-muted-foreground sm:text-sm">
+              {user.name} · {user.email}
             </span>
-          </div>
+          ) : null}
+        </div>
+
+        <div className="hidden md:flex">
+          {user ? (
+            <Button
+              disabled={logoutMutation.isPending}
+              size="sm"
+              variant="outline"
+              onClick={handleLogout}
+            >
+              <LogOut data-icon="inline-start" />
+              Logout
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="outline">
+              <Link href="/login">Login</Link>
+            </Button>
+          )}
+        </div>
 
 
         <div className="md:hidden">
@@ -41,6 +85,23 @@ const Navbar = () => {
               <SheetHeader>
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
+              <div className="flex flex-col gap-3 px-4 pb-6">
+                <Button asChild variant="ghost">
+                  <Link href={user ? "/dashboard" : "/login"}>
+                    {user ? "Dashboard" : "Login"}
+                  </Link>
+                </Button>
+                {user ? (
+                  <Button
+                    disabled={logoutMutation.isPending}
+                    variant="outline"
+                    onClick={handleLogout}
+                  >
+                    <LogOut data-icon="inline-start" />
+                    Logout
+                  </Button>
+                ) : null}
+              </div>
             </SheetContent>
           </Sheet>
         </div>

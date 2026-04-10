@@ -9,10 +9,11 @@ import type {
 } from "@/lib/api/types";
 import { candidateService } from "@/services/candidate.service";
 
-export function useCandidateExamsQuery() {
+export function useCandidateExamsQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.candidateExams,
     queryFn: candidateService.getExams,
+    enabled,
   });
 }
 

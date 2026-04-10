@@ -2,43 +2,29 @@
 
 import axios, { AxiosError } from "axios";
 import type { ApiErrorResponse, ApiResponse } from "@/lib/api/types";
+import { store } from "@/store";
+import { clearAuthUser } from "@/store/slices/authSlice";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_BASE_URL;
 
-export const AUTH_TOKEN_STORAGE_KEY = "auth_token";
-
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-apiClient.interceptors.request.use((config) => {
-  if (typeof window === "undefined") {
-    return config;
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error instanceof AxiosError && error.response?.status === 401) {
+      store.dispatch(clearAuthUser());
+    }
+
+    return Promise.reject(error);
   }
-
-  const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
-export function setAuthToken(token: string) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
-  }
-}
-
-export function clearAuthToken() {
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  }
-}
+);
 
 export async function unwrapResponse<T>(
   request: Promise<{ data: ApiResponse<T> }>,

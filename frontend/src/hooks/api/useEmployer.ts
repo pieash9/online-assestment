@@ -5,10 +5,11 @@ import { queryKeys } from "@/lib/api/query-keys";
 import type { CreateExamInput, QuestionPayload } from "@/lib/api/types";
 import { employerService } from "@/services/employer.service";
 
-export function useEmployerExamsQuery() {
+export function useEmployerExamsQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.employerExams,
     queryFn: employerService.getExams,
+    enabled,
   });
 }
 

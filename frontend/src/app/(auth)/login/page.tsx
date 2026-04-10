@@ -8,8 +8,10 @@ import { startTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useLoginMutation } from "@/hooks/api/useAuth";
+import { useAppDispatch } from "@/hooks/useRedux";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+import { setAuthUser } from "@/store/slices/authSlice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,6 +35,7 @@ const initialFormValues: LoginFormValues = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const loginMutation = useLoginMutation();
   const [successMessage, setSuccessMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,7 +53,11 @@ export default function LoginPage() {
 
     try {
       const response = await loginMutation.mutateAsync(values);
-      const destination = response.user.role === "EMPLOYER" ? "/" : "/";
+      dispatch(
+        setAuthUser(response.user),
+      );
+
+      const destination = response.user.role === "EMPLOYER" ? "/dashboard" : "/dashboard";
 
       setSuccessMessage(`Signed in as ${response.user.name}. Redirecting...`);
 
