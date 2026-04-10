@@ -10,7 +10,11 @@ declare global {
 export const prisma =
   global.prisma ??
   new PrismaClient({
-    adapter: createMySqlAdapter(env.DATABASE_URL),
+    adapter: createMySqlAdapter(env.DATABASE_URL, {
+      connectionLimit: env.DB_POOL_LIMIT,
+      connectTimeout: env.DB_CONNECT_TIMEOUT_MS,
+      acquireTimeout: env.DB_ACQUIRE_TIMEOUT_MS,
+    }),
     log: ["error", "warn"]
   });
 

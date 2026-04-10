@@ -1,6 +1,12 @@
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-export function createMySqlAdapter(databaseUrlValue: string) {
+type AdapterConfig = {
+  connectionLimit: number;
+  connectTimeout: number;
+  acquireTimeout: number;
+};
+
+export function createMySqlAdapter(databaseUrlValue: string, adapterConfig: AdapterConfig) {
   const databaseUrl = new URL(databaseUrlValue);
 
   if (databaseUrl.protocol !== "mysql:") {
@@ -19,6 +25,8 @@ export function createMySqlAdapter(databaseUrlValue: string) {
     user: decodeURIComponent(databaseUrl.username),
     password: decodeURIComponent(databaseUrl.password),
     database,
-    connectionLimit: 5
+    connectionLimit: adapterConfig.connectionLimit,
+    connectTimeout: adapterConfig.connectTimeout,
+    acquireTimeout: adapterConfig.acquireTimeout,
   });
 }
