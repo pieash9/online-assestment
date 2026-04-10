@@ -15,13 +15,13 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     });
 
     if (!user) {
-      throw new HttpError(401, "Invalid email or password");
+      throw new HttpError(401, "Invalid Credentials!");
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password);
 
     if (!passwordMatches) {
-      throw new HttpError(401, "Invalid email or password");
+      throw new HttpError(401, "Invalid Credentials!");
     }
 
     const token = jwt.sign(

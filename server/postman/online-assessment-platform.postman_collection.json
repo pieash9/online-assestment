@@ -1,0 +1,636 @@
+{
+  "info": {
+    "_postman_id": "0f744de3-4c31-466f-97bd-2c04f18e9a20",
+    "name": "Online Assessment Platform API",
+    "description": "Postman collection for the seeded Online Assessment Platform backend. Seeded credentials come from prisma/seed.ts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "employerToken",
+      "value": ""
+    },
+    {
+      "key": "candidateToken",
+      "value": ""
+    },
+    {
+      "key": "examId",
+      "value": ""
+    },
+    {
+      "key": "questionId",
+      "value": ""
+    },
+    {
+      "key": "attemptId",
+      "value": ""
+    },
+    {
+      "key": "checkboxQuestionId",
+      "value": ""
+    },
+    {
+      "key": "checkboxOptionId1",
+      "value": ""
+    },
+    {
+      "key": "checkboxOptionId2",
+      "value": ""
+    },
+    {
+      "key": "textQuestionId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "health"
+          ]
+        },
+        "description": "Check that the API server is running."
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Employer Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.token) {",
+                  "  pm.collectionVariables.set('employerToken', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employer@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Seeded employer credentials from prisma/seed.ts"
+          }
+        },
+        {
+          "name": "Candidate Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.token) {",
+                  "  pm.collectionVariables.set('candidateToken', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"candidate1@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Seeded candidate credentials from prisma/seed.ts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employer",
+      "item": [
+        {
+          "name": "List Exams",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employer/exams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employer",
+                "exams"
+              ]
+            },
+            "description": "Use the returned exam id to fill {{examId}}."
+          }
+        },
+        {
+          "name": "Create Exam",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Backend API Round 1\",\n  \"totalCandidates\": 10,\n  \"totalSlots\": 2,\n  \"questionSets\": 1,\n  \"questionType\": \"Mixed\",\n  \"startTime\": \"2026-04-10T09:00:00.000Z\",\n  \"endTime\": \"2026-04-10T12:00:00.000Z\",\n  \"durationMinutes\": 60,\n  \"negativeMarking\": 0.25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employer/exams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employer",
+                "exams"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Exam Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employer/exams/{{examId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employer",
+                "exams",
+                "{{examId}}"
+              ]
+            },
+            "description": "For the seeded exam, first get {{examId}} from List Exams."
+          }
+        },
+        {
+          "name": "Add Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Which HTTP method is commonly used to create a new resource?\",\n  \"type\": \"RADIO\",\n  \"options\": [\n    { \"label\": \"GET\", \"isCorrect\": false },\n    { \"label\": \"POST\", \"isCorrect\": true },\n    { \"label\": \"DELETE\", \"isCorrect\": false }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employer/exams/{{examId}}/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employer",
+                "exams",
+                "{{examId}}",
+                "questions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Which HTTP method is commonly used to create a new resource?\",\n  \"type\": \"RADIO\",\n  \"options\": [\n    { \"label\": \"POST\", \"isCorrect\": true },\n    { \"label\": \"PUT\", \"isCorrect\": false },\n    { \"label\": \"PATCH\", \"isCorrect\": false }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employer/questions/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employer",
+                "questions",
+                "{{questionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Question",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employer/questions/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employer",
+                "questions",
+                "{{questionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Exam Candidates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employer/exams/{{examId}}/candidates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employer",
+                "exams",
+                "{{examId}}",
+                "candidates"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate",
+      "item": [
+        {
+          "name": "List Assigned Exams",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/exams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "exams"
+              ]
+            },
+            "description": "Use the returned seeded exam id to fill {{examId}}."
+          }
+        },
+        {
+          "name": "Start Exam Attempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/exams/{{examId}}/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "exams",
+                "{{examId}}",
+                "start"
+              ]
+            },
+            "description": "Store the returned attempt id in {{attemptId}}."
+          }
+        },
+        {
+          "name": "Get Attempt Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/attempts/{{attemptId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "attempts",
+                "{{attemptId}}"
+              ]
+            },
+            "description": "From this response, fill the question and option variables for answer requests."
+          }
+        },
+        {
+          "name": "Save Checkbox Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{checkboxQuestionId}}\",\n  \"selectedOptionIds\": [\"{{checkboxOptionId1}}\", \"{{checkboxOptionId2}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/attempts/{{attemptId}}/answer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "attempts",
+                "{{attemptId}}",
+                "answer"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Save Text Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{textQuestionId}}\",\n  \"textAnswer\": \"Responsive design means a UI adapts well to different screen sizes and devices.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/attempts/{{attemptId}}/answer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "attempts",
+                "{{attemptId}}",
+                "answer"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Track Tab Switch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"TAB_SWITCH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/attempts/{{attemptId}}/behavior",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "attempts",
+                "{{attemptId}}",
+                "behavior"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Track Fullscreen Exit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"FULLSCREEN_EXIT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/attempts/{{attemptId}}/behavior",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "attempts",
+                "{{attemptId}}",
+                "behavior"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Manual Submit Attempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoSubmitted\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/attempts/{{attemptId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "attempts",
+                "{{attemptId}}",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auto Submit Attempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{candidateToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoSubmitted\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/candidate/attempts/{{attemptId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "candidate",
+                "attempts",
+                "{{attemptId}}",
+                "submit"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
