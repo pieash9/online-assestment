@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useState } from "react";
@@ -10,10 +11,17 @@ import { useLoginMutation } from "@/hooks/api/useAuth";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 
 const loginSchema = z.object({
   email: z.email("Please enter a valid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters long."),
+  password: z.string().min(1, "Enter Password!."),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -27,6 +35,7 @@ export default function LoginPage() {
   const router = useRouter();
   const loginMutation = useLoginMutation();
   const [successMessage, setSuccessMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -83,13 +92,14 @@ export default function LoginPage() {
                 <span className="block text-sm font-medium leading-6 text-slate-700">
                   Email
                 </span>
-                <input
+                <Input
+                  aria-invalid={errors.email ? "true" : "false"}
                   autoComplete="email"
                   className={cn(
-                    "h-12 w-full rounded-lg border bg-white px-4 text-sm text-slate-700 outline-none transition focus:ring-4",
+                    "h-12 rounded-lg border bg-white px-4 text-sm text-slate-700",
                     errors.email
-                      ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
-                      : "border-[#d1d5db] focus:border-[#6b3df5] focus:ring-[#6b3df5]/10",
+                      ? "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-500/10"
+                      : "border-[#6b3df5]/10 focus-visible:border-[#6b3df5] focus-visible:ring-[#6b3df5]/10",
                   )}
                   placeholder="Your primary email address"
                   type="email"
@@ -105,18 +115,35 @@ export default function LoginPage() {
                   <span className="block text-sm font-medium leading-6 text-slate-700">
                     Password
                   </span>
-                  <input
-                    autoComplete="current-password"
+                  <InputGroup
                     className={cn(
-                      "h-12 w-full rounded-lg border bg-white px-4 text-sm text-slate-700 outline-none transition focus:ring-4",
+                      "h-12 rounded-lg bg-white",
                       errors.password
-                        ? "border-red-400 focus:border-red-500 focus:ring-red-500/10"
-                        : "border-[#d1d5db] focus:border-[#6b3df5] focus:ring-[#6b3df5]/10",
+                        ? "border-red-400 has-[[data-slot=input-group-control]:focus-visible]:border-red-500 has-[[data-slot=input-group-control]:focus-visible]:ring-red-500/10"
+                        : "border-[#d1d5db] has-[[data-slot=input-group-control]:focus-visible]:border-[#6b3df5] has-[[data-slot=input-group-control]:focus-visible]:ring-[#6b3df5]/10",
                     )}
-                    placeholder="Enter your password"
-                    type="password"
-                    {...register("password")}
-                  />
+                  >
+                    <InputGroupInput
+                      aria-invalid={errors.password ? "true" : "false"}
+                      autoComplete="current-password"
+                      className="h-12 px-4 text-sm text-slate-700"
+                      placeholder="Enter your password"
+                      type={showPassword ? "text" : "password"}
+                      {...register("password")}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="text-slate-500 hover:text-slate-700"
+                        size="icon-sm"
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setShowPassword((current) => !current)}
+                      >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
                   <span className="min-h-5 text-sm text-red-600">
                     {errors.password?.message ?? ""}
                   </span>
