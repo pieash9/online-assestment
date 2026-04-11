@@ -20,6 +20,17 @@ Online exam system with two applications:
 
 ---
 
+## Credentials for Testing
+- **Employer**
+	- Email: employer@example.com
+	- Password: Password123!
+- **Candidate 1**
+	- Email: candidate1@example.com
+	- Password: Password123!
+- **Candidate 2**
+	- Email: candidate2@example.com
+	- Password: Password123!
+
 ## MCP Integration
 
 Yes, I have worked with **Model Context Protocol (MCP)**—specifically, the **Figma MCP** for design collaboration and prototyping. I used it to:
