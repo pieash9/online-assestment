@@ -100,11 +100,7 @@ const Navbar = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button asChild size="sm" variant="outline">
-              <Link href="/login">Login</Link>
-            </Button>
-          )}
+          ) : null}
         </div>
 
         <div className="md:hidden">
