@@ -2,12 +2,8 @@
 
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Search,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import OnlineTestCard, {
   type DashboardExamCard,
@@ -15,10 +11,7 @@ import OnlineTestCard, {
 import { useCandidateExamsQuery } from "@/hooks/api/useCandidate";
 import { useEmployerExamsQuery } from "@/hooks/api/useEmployer";
 import { useAppSelector } from "@/hooks/useRedux";
-import {
-  CandidateExamSummary,
-  EmployerExamSummary,
-} from "@/lib/api/types";
+import { CandidateExamSummary, EmployerExamSummary } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -29,8 +22,36 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
 
 const PAGE_SIZE = 4;
+
+type CreateOnlineTestButtonProps = {
+  show: boolean;
+};
+
+function CreateOnlineTestButton({ show }: CreateOnlineTestButtonProps) {
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <Button
+      asChild
+      className="h-12 rounded-xl bg-[#6633ff] px-8 text-base font-semibold text-white shadow-none hover:bg-[#5b2ef0]"
+    >
+      <Link href="/dashboard/create-test">
+        <Plus data-icon="inline-start" />
+        Create Online Test
+      </Link>
+    </Button>
+  );
+}
+
+const CreateOnlineTestButtonClientOnly = dynamic(
+  async () => CreateOnlineTestButton,
+  { ssr: false },
+);
 
 function DashboardSkeleton() {
   return (
@@ -59,7 +80,9 @@ function normalizeEmployerExam(exam: EmployerExamSummary): DashboardExamCard {
   return {
     id: exam.id,
     title: exam.examName,
-    candidatesLabel: exam.candidates ? exam.candidates.toLocaleString() : "Not Set",
+    candidatesLabel: exam.candidates
+      ? exam.candidates.toLocaleString()
+      : "Not Set",
     questionSetLabel: exam.questionSets ? String(exam.questionSets) : "Not Set",
     examSlotsLabel: exam.examSlots ? String(exam.examSlots) : "Not Set",
     actionLabel: "View Candidates",
@@ -67,13 +90,18 @@ function normalizeEmployerExam(exam: EmployerExamSummary): DashboardExamCard {
 }
 
 function normalizeCandidateExam(exam: CandidateExamSummary): DashboardExamCard {
+  const assignmentStatus = exam.status.toUpperCase();
+  const canStart =
+    assignmentStatus === "ASSIGNED" || assignmentStatus === "STARTED";
+
   return {
     id: exam.id,
     title: exam.title,
-    candidatesLabel: "Assigned",
+    candidatesLabel: `${exam.durationMinutes} min`,
     questionSetLabel: exam.questions ? String(exam.questions) : "Not Set",
-    examSlotsLabel: exam.durationMinutes ? `${exam.durationMinutes} Min` : "Not Set",
-    actionLabel: exam.status.toUpperCase() === "ACTIVE" ? "Start Test" : "View Details",
+    examSlotsLabel: `${exam.negativeMarking}/wrong`,
+    negativeMarkingLabel: `${exam.negativeMarking}/wrong`,
+    actionLabel: canStart ? "Start" : "View Details",
   };
 }
 
@@ -82,6 +110,7 @@ export default function DashboardPage() {
   const authHydrated = useAppSelector((state) => state.auth.hydrated);
   const isEmployer = user?.role === "EMPLOYER";
   const isCandidate = user?.role === "CANDIDATE";
+  const canCreateOnlineTest = authHydrated && isEmployer;
 
   const employerQuery: UseQueryResult<EmployerExamSummary[], Error> =
     useEmployerExamsQuery(isEmployer);
@@ -122,7 +151,8 @@ export default function DashboardPage() {
   }, [currentPage, filteredExams]);
 
   const isLoading =
-    !authHydrated || (isEmployer ? employerQuery.isLoading : candidateQuery.isLoading);
+    !authHydrated ||
+    (isEmployer ? employerQuery.isLoading : candidateQuery.isLoading);
   const isError = isEmployer ? employerQuery.isError : candidateQuery.isError;
 
   return (
@@ -145,21 +175,12 @@ export default function DashboardPage() {
                 }}
               />
               <div className="pointer-events-none absolute top-1/2 right-3 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#673fed]/10 text-[#6633ff]">
-                <Search className="size-4" />
+                {/* <Search className="size-4" /> */}
+                <Image className="size-6" src={`/images/icons/search.png`} width={80} height={80} alt="search"/>
               </div>
             </div>
 
-            {isEmployer ? (
-              <Button
-                asChild
-                className="h-12 rounded-xl bg-[#6633ff] px-8 text-base font-semibold text-white shadow-none hover:bg-[#5b2ef0]"
-              >
-                <Link href="/dashboard/create-test">
-                  <Plus data-icon="inline-start" />
-                  Create Online Test
-                </Link>
-              </Button>
-            ) : null}
+            <CreateOnlineTestButtonClientOnly show={canCreateOnlineTest} />
           </div>
         </div>
 
@@ -167,27 +188,34 @@ export default function DashboardPage() {
           <DashboardSkeleton />
         ) : isError ? (
           <Empty className="rounded-2xl border-[#e5e7eb] bg-white py-16">
-            <EmptyHeader>
+            <EmptyHeader className="w-full max-w-none">
               <EmptyMedia variant="icon">
                 <Search />
               </EmptyMedia>
               <EmptyTitle>Unable to load tests</EmptyTitle>
               <EmptyDescription>
-                The dashboard could not fetch exam data for this account right now.
+                The dashboard could not fetch exam data for this account right
+                now.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : paginatedExams.length === 0 ? (
           <Empty className="rounded-2xl border-[#e5e7eb] bg-white py-16">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Search />
+            <EmptyHeader className="w-full max-w-none">
+              <EmptyMedia variant="default">
+                <Image
+                className="max-w-40"
+                  src={"/images/common/empty-file.png"}
+                  alt="No online tests available"
+                  width={480}
+                  height={480}
+                />
               </EmptyMedia>
-              <EmptyTitle>No online tests found</EmptyTitle>
-              <EmptyDescription>
+              <EmptyTitle>No Online Test Available.</EmptyTitle>
+              <EmptyDescription className="w-full max-w-none">
                 {search
                   ? "Try another exam title."
-                  : "Your available tests will show up here."}
+                  : "Currently, there are no online tests available. Please check back later for updates. "}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -209,7 +237,9 @@ export default function DashboardPage() {
                   className="size-8 rounded-lg border border-[#f1f2f4] bg-white p-0 text-[#a0aec0] shadow-none hover:bg-[#f8f8f8]"
                   disabled={currentPage === 1}
                   variant="outline"
-                  onClick={() => setCurrentPageRaw((page) => Math.max(1, page - 1))}
+                  onClick={() =>
+                    setCurrentPageRaw((page) => Math.max(1, page - 1))
+                  }
                 >
                   <ChevronLeft />
                 </Button>

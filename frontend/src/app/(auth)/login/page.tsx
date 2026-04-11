@@ -176,7 +176,7 @@ export default function LoginPage() {
               >
                 {loginMutation.isPending || isSubmitting
                   ? "Submitting..."
-                  : "Submit"}
+                  : "Sign In"}
               </Button>
 
               <p

@@ -1,13 +1,21 @@
- "use client";
+"use client";
 
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, ChevronDown, UserCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useLogoutMutation } from "@/hooks/api/useAuth";
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
 import { clearAuthUser } from "@/store/slices/authSlice";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -21,6 +29,9 @@ const Navbar = () => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const logoutMutation = useLogoutMutation();
+  const [openUserMenu, setOpenUserMenu] = useState(false);
+
+  const userRefId = user?.id ? user.id.slice(-8).toUpperCase() : null;
 
   const handleLogout = async () => {
     try {
@@ -33,46 +44,68 @@ const Navbar = () => {
   };
 
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-      <div className="mx-auto flex min-h-20 w-full max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-20">
+    <header className="border-b border-[#e5e7eb] bg-white">
+      <div className="mx-auto flex min-h-16 w-full max-w-360 items-center justify-between gap-4 px-5 sm:px-8 lg:px-20">
         <Link className="flex items-center gap-3" href="/">
           <Image
             alt="Akij Resource"
-            className="h-8 w-auto object-contain"
+            className="w-auto object-contain"
             height={32}
             src="/images/brand/logo.png"
             width={116}
           />
         </Link>
-        <div className="flex flex-1 flex-col items-center">
-          <span className="text-base font-semibold text-foreground sm:text-lg">
-            Akij Resource
-          </span>
-          {user ? (
-            <span className="text-xs text-muted-foreground sm:text-sm">
-              {user.name} · {user.email}
-            </span>
-          ) : null}
+
+        <div className="hidden flex-1 md:flex md:items-center md:justify-start md:px-6">
+          <Link className="text-[15px] font-medium text-[#334155] hover:text-[#1e293b]" href="/dashboard">
+            Dashboard
+          </Link>
         </div>
 
-        <div className="hidden md:flex">
+        <div className="hidden md:flex md:items-center">
           {user ? (
-            <Button
-              disabled={logoutMutation.isPending}
-              size="sm"
-              variant="outline"
-              onClick={handleLogout}
-            >
-              <LogOut data-icon="inline-start" />
-              Logout
-            </Button>
+            <DropdownMenu open={openUserMenu} onOpenChange={setOpenUserMenu}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[#f8fafc]"
+                  onMouseEnter={() => setOpenUserMenu(true)}
+                  type="button"
+                >
+                  <UserCircle2 className="size-8 text-[#a0aec0]" />
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-sm font-semibold text-[#334155]">{user.name}</span>
+                    <span className="text-xs text-[#64748b]">Ref. ID - {userRefId}</span>
+                  </div>
+                  <ChevronDown className="size-4 text-[#64748b]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-52"
+                onMouseEnter={() => setOpenUserMenu(true)}
+                onMouseLeave={() => setOpenUserMenu(false)}
+              >
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium text-[#334155]">{user.name}</p>
+                  <p className="truncate text-xs text-[#64748b]">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  disabled={logoutMutation.isPending}
+                  onClick={handleLogout}
+                >
+                  <LogOut data-icon="inline-start" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button asChild size="sm" variant="outline">
               <Link href="/login">Login</Link>
             </Button>
           )}
         </div>
-
 
         <div className="md:hidden">
           <Sheet>
@@ -81,11 +114,18 @@ const Navbar = () => {
                 <Menu />
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-[280px]" side="right">
+            <SheetContent className="w-70" side="right">
               <SheetHeader>
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-3 px-4 pb-6">
+                {user ? (
+                  <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] px-3 py-2">
+                    <p className="text-sm font-semibold text-[#334155]">{user.name}</p>
+                    <p className="truncate text-xs text-[#64748b]">{user.email}</p>
+                    <p className="text-xs text-[#64748b]">Ref. ID - {userRefId}</p>
+                  </div>
+                ) : null}
                 <Button asChild variant="ghost">
                   <Link href={user ? "/dashboard" : "/login"}>
                     {user ? "Dashboard" : "Login"}
