@@ -49,7 +49,7 @@ const Navbar = () => {
         <Link className="flex items-center gap-3" href="/">
           <Image
             alt="Akij Resource"
-            className="h-8 w-auto object-contain"
+            className="w-auto object-contain"
             height={32}
             src="/images/brand/logo.png"
             width={116}
