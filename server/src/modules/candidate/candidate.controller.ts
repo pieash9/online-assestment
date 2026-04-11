@@ -72,7 +72,7 @@ export async function listCandidateExams(
     const candidateId = req.user!.userId;
 
     const assignments = await prisma.examAssignment.findMany({
-      // where: { candidateId },
+      where: { candidateId },
       include: {
         exam: {
           include: {

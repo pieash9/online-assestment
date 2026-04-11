@@ -16,7 +16,7 @@ Online exam system with two applications:
 
 ## Video Demo
 
-🔗 **[Video Demo](https://online-assestment-chi.vercel.app)**
+🔗 **[Video Demo](https://drive.google.com/file/d/1sl7yKKc8IeZ-TTjtmrki0iRmsR_o7hQG/view?usp=sharing)**
 
 ---
 
