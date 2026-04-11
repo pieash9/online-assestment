@@ -6,7 +6,16 @@ type AdapterConfig = {
   acquireTimeout: number;
 };
 
-export function createMySqlAdapter(databaseUrlValue: string, adapterConfig: AdapterConfig) {
+const DEFAULT_ADAPTER_CONFIG: AdapterConfig = {
+  connectionLimit: 10,
+  connectTimeout: 10_000,
+  acquireTimeout: 10_000,
+};
+
+export function createMySqlAdapter(
+  databaseUrlValue: string,
+  adapterConfig: AdapterConfig = DEFAULT_ADAPTER_CONFIG,
+) {
   const databaseUrl = new URL(databaseUrlValue);
 
   if (databaseUrl.protocol !== "mysql:") {
