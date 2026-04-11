@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useLoginMutation } from "@/hooks/api/useAuth";
@@ -57,13 +57,9 @@ export default function LoginPage() {
         setAuthUser(response.user),
       );
 
-      const destination = response.user.role === "EMPLOYER" ? "/dashboard" : "/dashboard";
+      setSuccessMessage(`Redirecting...`);
+      router.push('/dashboard');
 
-      setSuccessMessage(`Signed in as ${response.user.name}. Redirecting...`);
-
-      startTransition(() => {
-        router.push(destination);
-      });
     } catch {
       setSuccessMessage("");
     }
@@ -77,7 +73,7 @@ export default function LoginPage() {
     <section className="relative flex min-h-[calc(100vh-10rem)] items-center justify-center overflow-hidden bg-[#f9fafb] px-4 py-10 text-slate-700 sm:px-6 sm:py-16">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.92),transparent_48%),linear-gradient(180deg,rgba(255,255,255,0.78)_0%,rgba(249,250,251,1)_70%)]" />
       <div
-        className="relative z-10 flex w-full max-w-[571px] flex-col gap-6"
+        className="relative z-10 flex w-full max-w-142.75 flex-col gap-6"
         data-node-id="1:934"
       >
         <div className="text-center">
