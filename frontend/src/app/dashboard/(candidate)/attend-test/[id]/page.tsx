@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCheck, CircleX, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -8,6 +8,7 @@ import {
   useSaveAnswerMutation,
   useStartAttemptMutation,
   useSubmitAttemptMutation,
+  useTrackBehaviorMutation,
 } from "@/hooks/api/useCandidate";
 import { useAppSelector } from "@/hooks/useRedux";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -36,6 +37,8 @@ function hasRichTextContent(value: string) {
   return plainText.length > 0;
 }
 
+const BEHAVIOR_EVENT_THROTTLE_MS = 1500;
+
 export default function AttendTestPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -56,10 +59,16 @@ export default function AttendTestPage() {
 
   const startedRef = useRef(false);
   const timeoutSubmittedRef = useRef(false);
+  const fullscreenActiveRef = useRef(false);
+  const lastBehaviorAtRef = useRef({
+    TAB_SWITCH: 0,
+    FULLSCREEN_EXIT: 0,
+  });
 
   const startAttemptMutation = useStartAttemptMutation();
   const saveAnswerMutation = useSaveAnswerMutation();
   const submitAttemptMutation = useSubmitAttemptMutation();
+  const trackBehaviorMutation = useTrackBehaviorMutation();
 
   const attemptQuery = useAttemptQuestionsQuery(attemptId);
 
@@ -122,9 +131,83 @@ export default function AttendTestPage() {
     manualResultModal === "timeout" || status === "TIMEOUT";
 
   useEffect(() => {
+    fullscreenActiveRef.current = Boolean(document.fullscreenElement);
+  }, []);
+
+  useEffect(() => {
+    const isAttemptActive =
+      Boolean(attemptId) &&
+      status === "STARTED" &&
+      !isCompletedModalOpen &&
+      !isTimeoutModalOpen;
+
+    if (!isAttemptActive) {
+      return;
+    }
+
+    const trackBehaviorEvent = (eventType: "TAB_SWITCH" | "FULLSCREEN_EXIT") => {
+      if (!attemptId) {
+        return;
+      }
+
+      const now = Date.now();
+      const lastTrackedAt = lastBehaviorAtRef.current[eventType];
+      if (now - lastTrackedAt < BEHAVIOR_EVENT_THROTTLE_MS) {
+        return;
+      }
+
+      lastBehaviorAtRef.current[eventType] = now;
+
+      trackBehaviorMutation.mutate({
+        attemptId,
+        payload: { eventType },
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        trackBehaviorEvent("TAB_SWITCH");
+      }
+    };
+
+    const handleWindowBlur = () => {
+      if (document.visibilityState === "visible") {
+        trackBehaviorEvent("TAB_SWITCH");
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      const isFullscreen = Boolean(document.fullscreenElement);
+
+      if (fullscreenActiveRef.current && !isFullscreen) {
+        trackBehaviorEvent("FULLSCREEN_EXIT");
+      }
+
+      fullscreenActiveRef.current = isFullscreen;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [
+    attemptId,
+    isCompletedModalOpen,
+    isTimeoutModalOpen,
+    status,
+    trackBehaviorMutation,
+  ]);
+
+  useEffect(() => {
     if (
       secondsLeft !== 0 ||
       !attemptId ||
+      status !== "STARTED" ||
       timeoutSubmittedRef.current ||
       submitAttemptMutation.isPending
     ) {
@@ -144,7 +227,7 @@ export default function AttendTestPage() {
       .catch((error) => {
         console.error("Failed to submit attempt on timeout:", error);
       });
-  }, [attemptId, secondsLeft, submitAttemptMutation]);
+  }, [attemptId, secondsLeft, status, submitAttemptMutation]);
 
   const questions = attemptQuery.data?.exam.questions ?? [];
   const totalQuestions = questions.length;
