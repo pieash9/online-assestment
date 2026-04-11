@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,7 +33,6 @@ const initialFormValues: LoginFormValues = {
 };
 
 export default function LoginPage() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const loginMutation = useLoginMutation();
   const [successMessage, setSuccessMessage] = useState("");
@@ -58,7 +56,7 @@ export default function LoginPage() {
       );
 
       setSuccessMessage(`Redirecting...`);
-      router.push('/dashboard');
+      window.location.replace("/dashboard");
 
     } catch {
       setSuccessMessage("");
