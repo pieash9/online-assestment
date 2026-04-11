@@ -1,6 +1,6 @@
 ---
 
-## 🤖 MCP Integration
+## MCP Integration
 
 Yes, I have worked with **Model Context Protocol (MCP)**—specifically, the **Figma MCP** for design collaboration and prototyping. I used it to:
 - **Streamline the design-to-development workflow** by extracting assets, styles, and components directly from Figma designs.
