@@ -3,6 +3,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import OnlineTestCard, {
   type DashboardExamCard,
@@ -24,6 +25,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 
 const PAGE_SIZE = 4;
+
+type CreateOnlineTestButtonProps = {
+  show: boolean;
+};
+
+function CreateOnlineTestButton({ show }: CreateOnlineTestButtonProps) {
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <Button
+      asChild
+      className="h-12 rounded-xl bg-[#6633ff] px-8 text-base font-semibold text-white shadow-none hover:bg-[#5b2ef0]"
+    >
+      <Link href="/dashboard/create-test">
+        <Plus data-icon="inline-start" />
+        Create Online Test
+      </Link>
+    </Button>
+  );
+}
+
+const CreateOnlineTestButtonClientOnly = dynamic(
+  async () => CreateOnlineTestButton,
+  { ssr: false },
+);
 
 function DashboardSkeleton() {
   return (
@@ -62,16 +90,18 @@ function normalizeEmployerExam(exam: EmployerExamSummary): DashboardExamCard {
 }
 
 function normalizeCandidateExam(exam: CandidateExamSummary): DashboardExamCard {
+  const assignmentStatus = exam.status.toUpperCase();
+  const canStart =
+    assignmentStatus === "ASSIGNED" || assignmentStatus === "STARTED";
+
   return {
     id: exam.id,
     title: exam.title,
-    candidatesLabel: "Assigned",
+    candidatesLabel: `${exam.durationMinutes} min`,
     questionSetLabel: exam.questions ? String(exam.questions) : "Not Set",
-    examSlotsLabel: exam.durationMinutes
-      ? `${exam.durationMinutes} Min`
-      : "Not Set",
-    actionLabel:
-      exam.status.toUpperCase() === "ACTIVE" ? "Start Test" : "View Details",
+    examSlotsLabel: `${exam.negativeMarking}/wrong`,
+    negativeMarkingLabel: `${exam.negativeMarking}/wrong`,
+    actionLabel: canStart ? "Start" : "View Details",
   };
 }
 
@@ -80,6 +110,7 @@ export default function DashboardPage() {
   const authHydrated = useAppSelector((state) => state.auth.hydrated);
   const isEmployer = user?.role === "EMPLOYER";
   const isCandidate = user?.role === "CANDIDATE";
+  const canCreateOnlineTest = authHydrated && isEmployer;
 
   const employerQuery: UseQueryResult<EmployerExamSummary[], Error> =
     useEmployerExamsQuery(isEmployer);
@@ -149,17 +180,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {isEmployer ? (
-              <Button
-                asChild
-                className="h-12 rounded-xl bg-[#6633ff] px-8 text-base font-semibold text-white shadow-none hover:bg-[#5b2ef0]"
-              >
-                <Link href="/dashboard/create-test">
-                  <Plus data-icon="inline-start" />
-                  Create Online Test
-                </Link>
-              </Button>
-            ) : null}
+            <CreateOnlineTestButtonClientOnly show={canCreateOnlineTest} />
           </div>
         </div>
 
