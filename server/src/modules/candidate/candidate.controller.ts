@@ -1,35 +1,24 @@
-import { AssignmentStatus, AttemptStatus, QuestionType } from "@prisma/client";
+import { AttemptStatus, QuestionType } from "@prisma/client";
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../lib/prisma";
 import { sendSuccess } from "../../utils/api-response";
 import { HttpError } from "../../utils/http-error";
 
-async function getCandidateAssignment(examId: string, candidateId: string) {
-  const assignment = await prisma.examAssignment.findUnique({
-    where: {
-      examId_candidateId: {
-        examId,
-        candidateId
-      }
-    },
-    include: {
-      exam: {
-        include: {
-          _count: {
-            select: {
-              questions: true
-            }
-          }
-        }
-      }
+async function getExamById(examId: string) {
+  const exam = await prisma.exam.findUnique({
+    where: { id: examId },
+    select: {
+      id: true,
+      startTime: true,
+      endTime: true
     }
   });
 
-  if (!assignment) {
-    throw new HttpError(404, "Assigned exam not found");
+  if (!exam) {
+    throw new HttpError(404, "Exam not found");
   }
 
-  return assignment;
+  return exam;
 }
 
 async function getOwnedAttempt(attemptId: string, candidateId: string) {
@@ -71,17 +60,21 @@ export async function listCandidateExams(
   try {
     const candidateId = req.user!.userId;
 
-    const assignments = await prisma.examAssignment.findMany({
-      where: { candidateId },
+    const exams = await prisma.exam.findMany({
       include: {
-        exam: {
-          include: {
-            _count: {
-              select: {
-                questions: true
-              }
-            }
+        _count: {
+          select: {
+            questions: true
           }
+        },
+        attempts: {
+          where: {
+            candidateId
+          },
+          select: {
+            status: true
+          },
+          take: 1
         }
       },
       orderBy: {
@@ -89,15 +82,15 @@ export async function listCandidateExams(
       }
     });
 
-    const payload = assignments.map((assignment: (typeof assignments)[number]) => ({
-      id: assignment.exam.id,
-      title: assignment.exam.title,
-      durationMinutes: assignment.exam.durationMinutes,
-      questions: assignment.exam._count.questions,
-      negativeMarking: Number(assignment.exam.negativeMarking),
-      status: assignment.status.toLowerCase(),
-      startTime: assignment.exam.startTime,
-      endTime: assignment.exam.endTime
+    const payload = exams.map((exam: (typeof exams)[number]) => ({
+      id: exam.id,
+      title: exam.title,
+      durationMinutes: exam.durationMinutes,
+      questions: exam._count.questions,
+      negativeMarking: Number(exam.negativeMarking),
+      status: (exam.attempts[0]?.status ?? "ASSIGNED").toLowerCase(),
+      startTime: exam.startTime,
+      endTime: exam.endTime
     }));
 
     return res.json(sendSuccess(payload, "Candidate exams fetched successfully"));
@@ -115,12 +108,7 @@ export async function startExamAttempt(
     const candidateId = req.user!.userId;
     const examId = String(req.params.id);
 
-    const assignment = await getCandidateAssignment(examId, candidateId);
-    const now = new Date();
-
-    if (now < assignment.exam.startTime || now > assignment.exam.endTime) {
-      throw new HttpError(400, "Exam is not active right now");
-    }
+    await getExamById(examId);
 
     const attempt = await prisma.examAttempt.upsert({
       where: {
@@ -134,18 +122,6 @@ export async function startExamAttempt(
         examId,
         candidateId,
         status: AttemptStatus.STARTED
-      }
-    });
-
-    await prisma.examAssignment.update({
-      where: {
-        examId_candidateId: {
-          examId,
-          candidateId
-        }
-      },
-      data: {
-        status: AssignmentStatus.STARTED
       }
     });
 
@@ -336,18 +312,6 @@ export async function submitAttempt(
         status: autoSubmitted ? AttemptStatus.TIMEOUT : AttemptStatus.SUBMITTED,
         submittedAt: new Date(),
         autoSubmitted
-      }
-    });
-
-    await prisma.examAssignment.update({
-      where: {
-        examId_candidateId: {
-          examId: attempt.examId,
-          candidateId
-        }
-      },
-      data: {
-        status: autoSubmitted ? AssignmentStatus.TIMEOUT : AssignmentStatus.SUBMITTED
       }
     });
 

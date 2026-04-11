@@ -85,7 +85,7 @@ function normalizeEmployerExam(exam: EmployerExamSummary): DashboardExamCard {
       : "Not Set",
     questionSetLabel: exam.questionSets ? String(exam.questionSets) : "Not Set",
     examSlotsLabel: exam.examSlots ? String(exam.examSlots) : "Not Set",
-    actionLabel: "View Candidates",
+    actionLabel: "Manage Test",
   };
 }
 
