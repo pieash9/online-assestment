@@ -35,7 +35,7 @@ export function useCreateExamMutation() {
   return useMutation({
     mutationFn: (payload: CreateExamInput) => employerService.createExam(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.employerExams });
+      queryClient.invalidateQueries({ queryKey: [queryKeys.employerExams, queryKeys.candidateExams] });
     },
   });
 }
@@ -50,7 +50,7 @@ export function useUpdateExamMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.employerExam(variables.examId),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employerExams });
+      queryClient.invalidateQueries({ queryKey: [queryKeys.employerExams, queryKeys.candidateExams] });
     },
   });
 }
@@ -65,7 +65,7 @@ export function useAddQuestionMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.employerExam(variables.examId),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employerExams });
+      queryClient.invalidateQueries({ queryKey: [queryKeys.employerExams, queryKeys.candidateExams] });
     },
   });
 }
@@ -86,7 +86,7 @@ export function useUpdateQuestionMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.employerExam(variables.examId),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employerExams });
+      queryClient.invalidateQueries({ queryKey: [queryKeys.employerExams, queryKeys.candidateExams] });
     },
   });
 }
@@ -101,7 +101,7 @@ export function useDeleteQuestionMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.employerExam(variables.examId),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employerExams });
+      queryClient.invalidateQueries({ queryKey: [queryKeys.employerExams, queryKeys.candidateExams] });
     },
   });
 }
